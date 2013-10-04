@@ -1,18 +1,21 @@
 
+# Standard
+import sys
 import os
 import datetime
-import ingestSettings as settings
-#import numpy as np
-#from scipy import integrate
 import json
 
-#----------------------------------------------------------------#
+import sys
+projectPath = '/Users/robrant/eclipseCode/tracks/loggerIngest'
+if projectPath not in sys.path:
+    sys.path.append(projectPath)
 
-def getFldIndex(line):
-    ''' Gets the field index into a list '''
+# OSS
+#import geojson
 
-    
-
+# Custom
+from config import ingestSettings as settings
+import inserters
 
 #----------------------------------------------------------------#
 
@@ -66,6 +69,15 @@ def getTimeStamp(startTime, elapsedTime):
 
 #----------------------------------------------------------------#
 
+def getGeoJson(lon, lat):
+    ''' Build geojson from the lon and lat'''
+
+    p = geojson.Point([float(lon), float(lat)])
+    return geojson.dumps(p)
+
+
+#----------------------------------------------------------------#
+
 def extractData(dirName, fileName):
 
     ''' Loops file and outputs json/dict object of content.
@@ -114,6 +126,10 @@ def extractData(dirName, fileName):
                 if fldName == settings.ELAPSED_TIME_FIELD:
                     d[settings.ABS_TIMESTAMP_FIELD] = getTimeStamp(startDate, splitLine[j])
 
+            # Build geojson for location
+            if d[settings.LON_FIELD] != None and d[settings.LAT_FIELD] != None:
+                d[settings.GEO_FIELD] = getGeoJson(d[settings.LON_FIELD], d[settings.LAT_FIELD])
+
             output.append(d)
      
         i+=1
@@ -134,8 +150,9 @@ def main():
 
     # Extract the data from the file
     data = extractData(dirName, fileName)
-    
-    results = insertToPostgres()
+    #for x in data:
+    #    print x
+    results = inserters.postgresInserter(data)
         
     # Insert the data into postgres
     
